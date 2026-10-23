@@ -2,13 +2,6 @@
 
 A local-first, webcam-controlled musical instrument for Experiment@CRX at uOttawa INNOVA. Move one hand in front of the camera to play soft pentatonic notes and paint a glowing trail. A mouse/touch mode uses the same controls when a camera is unavailable.
 
-## Prerequisites
-
-- Node.js 20.19+ (or 22.12+) and npm.
-- A current Chrome or Edge browser for the smoothest camera and Web Audio support.
-- A webcam for hand tracking; a mouse or touchscreen is enough for the fallback.
-- An internet connection for the one-time setup download of the MediaPipe model. The app itself makes no API calls and sends no camera data anywhere.
-
 ## Install and run
 
 From this folder, run these exact commands:

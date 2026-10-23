@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080a12" />
+    <meta name="description" content="Make music with a wave of your hand. A local-first webcam music experiment for Experiment@CRX at uOttawa INNOVA." />
+    <title>The Invisible Orchestra — Experiment@CRX</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="The Invisible Orchestra home">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="brand-name">INNOVA <span class="brand-divider">/</span> EXPERIMENT@CRX</span>
+        </a>
+        <div class="topbar-actions">
+          <span class="privacy-chip"><span class="privacy-dot"></span><span data-i18n="privacyShort">On-device · private</span></span>
+          <button class="language-toggle" id="languageToggle" type="button" aria-label="Switch language">FR</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="intro-row" aria-labelledby="pageTitle">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span><span data-i18n="eyebrow">A gesture-powered sound experiment</span></p>
+            <h1 id="pageTitle" data-i18n="title">The Invisible<br class="mobile-break" /> Orchestra<span class="title-period">.</span></h1>
+          </div>
+          <p class="intro-copy" data-i18n="intro">An instrument you can’t see.<br />Move your hand. Hear what happens.</p>
+        </section>
+
+        <section class="experience-grid" aria-label="Musical instrument">
+          <div class="stage-column">
+            <div class="stage" id="stage">
+              <video id="cameraVideo" class="camera-video is-hidden" playsinline muted aria-label="Mirrored camera preview"></video>
+              <canvas id="visualCanvas" aria-hidden="true"></canvas>
+              <div class="stage-vignette" aria-hidden="true"></div>
+              <div class="stage-topline">
+                <span class="state-pill" id="statePill"><span class="state-dot"></span><span id="stateLabel" data-i18n="stateWelcome">READY WHEN YOU ARE</span></span>
+              </div>
+              <div class="welcome-panel" id="welcomePanel">
+                <div class="welcome-orbit" aria-hidden="true"><span></span><span></span><span></span><span></span><i></i></div>
+                <p class="welcome-kicker" data-i18n="welcomeKicker">YOUR HAND IS THE INSTRUMENT</p>
+                <h2 data-i18n="welcomeTitle">Make a little<br />room for wonder.</h2>
+                <p class="welcome-copy" data-i18n="welcomeCopy">Lift one hand into view. Move across to change the note, then float up and down to shape its volume.</p>
+                <div class="welcome-actions">
+                  <button class="primary-button" id="startButton" type="button">
+                    <span data-i18n="start">Start experience</span><span class="button-arrow" aria-hidden="true">↗</span>
+                  </button>
+                  <button class="text-button" id="fallbackButton" type="button" data-i18n="tryMouse">Try without camera <span aria-hidden="true">→</span></button>
+                </div>
+                <p class="welcome-footnote"><span aria-hidden="true">✳</span> <span data-i18n="welcomeFootnote">No microphone. No recordings. Just you and sound.</span></p>
+              </div>
+              <div class="resume-panel is-hidden" id="resumePanel">
+                <span class="resume-icon" aria-hidden="true">Ⅱ</span>
+                <p class="welcome-kicker" data-i18n="pausedKicker">A MOMENT OF QUIET</p>
+                <h2 data-i18n="pausedTitle">The orchestra<br />is taking a breath.</h2>
+                <p class="welcome-copy" data-i18n="pausedCopy">The page was in the background, so the camera and sound have paused.</p>
+                <button class="primary-button" id="resumeButton" type="button"><span data-i18n="resume">Resume experience</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+              </div>
+              <div class="loading-panel is-hidden" id="loadingPanel" role="status" aria-live="polite">
+                <span class="loading-spinner" aria-hidden="true"></span>
+                <p class="welcome-kicker" data-i18n="loadingKicker">TUNING THE ORCHESTRA</p>
+                <p class="loading-copy" data-i18n="loadingCopy">Waking up the sound and finding the camera…</p>
+              </div>
+              <div class="error-panel is-hidden" id="errorPanel" role="alert">
+                <span class="error-mark" aria-hidden="true">!</span>
+                <p class="welcome-kicker" data-i18n="errorKicker">A SMALL INTERRUPTION</p>
+                <p class="error-message" id="errorMessage"></p>
+                <button class="text-button" id="errorFallbackButton" type="button" data-i18n="errorFallback">Continue without camera <span aria-hidden="true">→</span></button>
+              </div>
+              <div class="stage-feedback is-hidden" id="stageFeedback">
+                <span class="feedback-indicator"></span><span id="feedbackText" data-i18n="showHand">Show your hand</span>
+              </div>
+              <div class="note-float is-hidden" id="noteFloat" aria-live="polite">
+                <span class="note-caption" data-i18n="nowPlaying">NOW PLAYING</span>
+                <strong id="noteName">C4</strong>
+                <span class="note-frequency" id="noteFrequency">262 Hz</span>
+              </div>
+              <div class="stage-bottomline">
+                <span class="stage-hint" id="stageHint" data-i18n="stageHint">Your left ↔ right · and up ↕ down</span>
+                <span class="mode-label" id="modeLabel"></span>
+              </div>
+            </div>
+            <div class="privacy-note"><span class="privacy-lock" aria-hidden="true">⌑</span><span data-i18n="privacyNote">Your camera stays on this device. Video is never recorded or uploaded.</span></div>
+          </div>
+
+          <aside class="control-panel" aria-label="Instrument controls">
+            <div class="panel-heading">
+              <p class="eyebrow"><span class="eyebrow-line"></span><span data-i18n="instrumentLabel">YOUR INSTRUMENT</span></p>
+              <span class="scale-badge" data-i18n="scaleBadge">C MAJOR PENTATONIC</span>
+            </div>
+            <div class="note-display">
+              <div>
+                <span class="note-display-label" data-i18n="currentNote">CURRENT NOTE</span>
+                <p class="note-display-name" id="panelNote">—</p>
+              </div>
+              <span class="sound-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            </div>
+            <div class="mapping-card">
+              <div class="mapping-row">
+                <span class="mapping-icon horizontal" aria-hidden="true">↔</span>
+                <div><strong data-i18n="leftRight">Move left / right</strong><span data-i18n="leftRightHint">Explore 11 gentle notes</span></div>
+              </div>
+              <div class="mapping-divider"></div>
+              <div class="mapping-row">
+                <span class="mapping-icon vertical" aria-hidden="true">↕</span>
+                <div><strong data-i18n="upDown">Move up / down</strong><span data-i18n="upDownHint">Shape the volume</span></div>
+              </div>
+            </div>
+            <button class="preview-toggle control-preview-toggle" id="previewToggle" type="button" aria-pressed="true">
+              <span class="eye-icon" aria-hidden="true">◉</span><span data-i18n="hidePreview">Hide preview</span>
+            </button>
+            <label class="volume-control" for="masterVolume">
+              <span class="volume-label"><span data-i18n="masterVolume">MASTER VOLUME</span><span id="volumeValue">35%</span></span>
+              <input id="masterVolume" type="range" min="0" max="70" value="35" />
+              <span class="range-labels"><span data-i18n="quieter">QUIETER</span><span data-i18n="louder">LOUDER</span></span>
+            </label>
+            <div class="transport-controls">
+              <button class="transport-button mute-button" id="muteButton" type="button" aria-pressed="false" disabled>
+                <span class="transport-icon" aria-hidden="true">◖</span><span data-i18n="mute">Mute</span>
+              </button>
+              <button class="transport-button restart-button" id="restartButton" type="button" disabled>
+                <span class="transport-icon restart-icon" aria-hidden="true">↻</span><span data-i18n="restart">Restart</span>
+              </button>
+              <button class="transport-button stop-button" id="stopButton" type="button" disabled>
+                <span class="stop-icon" aria-hidden="true"></span><span data-i18n="stop">Stop</span>
+              </button>
+            </div>
+            <div class="hand-status">
+              <span class="hand-status-dot" id="handStatusDot"></span>
+              <div><strong id="handStatusLabel" data-i18n="handWaiting">Waiting for your hand</strong><span id="handStatusHint" data-i18n="handHint">Lift one hand into the frame</span></div>
+            </div>
+            <div class="panel-footer"><span class="footer-sparkle" aria-hidden="true">✳</span><span data-i18n="footer">A little music, made together.</span></div>
+          </aside>
+        </section>
+      </main>
+
+      <footer class="page-footer">
+        <span data-i18n="footerCredit">AN EXPERIMENT IN HUMAN-COMPUTER CONNECTION</span>
+        <span>uOttawa <span class="footer-separator">·</span> INNOVA</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

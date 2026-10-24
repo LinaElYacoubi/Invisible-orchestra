@@ -1,10 +1,21 @@
+<<<<<<< HEAD
 ﻿# The Invisible Orchestra
+=======
+# The Invisible Orchestra
+link : https://airchestra.netlify.app/
+>>>>>>> 5d47dccb1e0f19f686d9a98e992085961f06d91a
 
 A local-first, hand-controlled music experience for the INNOVA drop-in showcase. Visitors can make music immediately, or listen to a short melody and repeat it. Camera frames stay on the device and are never recorded or uploaded. No microphone, accounts, names, leaderboard or queue.
 
+<<<<<<< HEAD
 ## Install and launch
 
 Use Node.js 20.19+ (or 22.12+) and a current Chrome or Edge browser. From the project folder in Windows PowerShell:
+=======
+## Install and run
+
+From this folder, run these exact commands:
+>>>>>>> 5d47dccb1e0f19f686d9a98e992085961f06d91a
 
 ```powershell
 npm.cmd install

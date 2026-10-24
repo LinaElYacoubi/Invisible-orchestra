@@ -10,3 +10,11 @@ export function demoFrame(now, reducedMotion=false) {
  const y=reducedMotion?.5:.5+.27*Math.sin(now/6000*Math.PI*2);
  return {x,y,noteIndex:noteIndexForX(x),volume:1-y};
 }
+
+export function welcomeDemoFrame(now, twoHands=true, reducedMotion=false){
+ const base=demoFrame(now,reducedMotion);
+ if(!twoHands)return {...base,left:null};
+ const x=.62+(base.x-.5)*.65;
+ const left={x:.17,y:.5+(base.y-.5)*.74};
+ return {x,y:.56,left,noteIndex:noteIndexForX(x),volume:1-left.y};
+}

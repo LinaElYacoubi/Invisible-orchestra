@@ -77,7 +77,7 @@ Browser verification uses synthetic input, not a real webcam or human listening.
 
 ## Limitations and credits
 
-The app tracks one hand. Inference runs synchronously on the main thread at about 12 frames per second; lower-powered devices may be less responsive. Camera notes align with the mirrored letterboxed preview; mouse notes span the stage. No gestures are classified and nothing is recorded. Web fonts may require internet; system fonts work when unavailable.
+Two hands is the default: physical Right selects notes and physical Left sets volume. One hand remains available in Settings. Inference runs synchronously on the main thread at about 12 frames per second; lower-powered devices may be less responsive. Camera notes align with the mirrored letterboxed preview; mouse notes span the stage. Two hands uses physical Right for notes and Left for volume; nothing is recorded. Web fonts may require internet; system fonts work when unavailable.
 
 The highest guitar and saxophone notes are shifted from nearby recordings. Saxophone sustain uses a crossfaded loop, which can sound less natural on long holds. Loudness is approximately balanced with sample normalisation, per-instrument levels and a compressor; listening is still needed.
 
@@ -98,10 +98,55 @@ Run `node scripts/check-presentation.cjs` with the temporary Playwright installa
 
 ## Welcome layout
 
-The welcome screen uses one headline and a balanced two-column card: introduction and both start buttons on the left, a silent **Demo preview** over coloured note bands on the right. The outlined hand moves horizontally and vertically with a glowing trail; its current note band highlights and a vertical Quiet/Loud meter follows its height (Doux/Fort in French). Two readable captions explain notes and volume. Reduced-motion preferences freeze the animation. This preview never starts a camera or creates an audio context.
+The welcome screen uses one headline and a balanced two-column card: introduction and both start buttons on the left, a silent **Demo preview** over coloured note bands on the right. The two labelled hands show Right moving sideways for notes and Left moving vertically for volume, with a highlighted note and a Quiet/Loud meter (Doux/Fort in French). Two readable captions explain notes and volume. Reduced-motion preferences freeze the animation. This preview never starts a camera or creates an audio context.
 
 **Settings** is now a header menu. **Display** contains the Laptop/Hologram selector and the nested **Presentation output** controls; there is no settings sidebar or separate presentation-settings row on the welcome screen. Header menus can be closed with Escape or by clicking outside. Their contents scroll when needed so all options remain reachable at smaller sizes. The essential welcome card fits 1366 × 768 and 1920 × 1080 at 100% zoom; narrower screens and increased zoom can scroll naturally. One readable privacy line appears below the card.
 
 Run `node scripts/check-welcome.cjs` using the temporary Playwright setup above for layout checks and screenshots at 1366 × 768, 1920 × 1080, 3840 × 2160, 2160 × 3840 and a narrow phone viewport. It checks English/French actions, no horizontal overflow, silent/no-camera welcome behaviour, header menu access, 200% CSS zoom/reflow and reduced motion. The 200% check is a browser CSS zoom simulation; native browser/OS text scaling and the physical Capsule still need on-site checks. Hologram mode retains its UHD presets in the current browser window.
 
 Note display names are beginner-friendly by default: C, D, E, G, A in English and Do, Ré, Mi, Sol, La in French. **Settings → Show octave numbers** optionally adds octaves (for example C4 or Do4), including in the demo, note zones, current-note display and Hologram mode. This changes labels only: the original C4–C6 pitches, scale indices, sample selection and challenge matching remain unchanged. The preference lasts until page reload. Display and Settings use quieter header styling, while language switching stays visible and Start playing remains the strongest action.
+
+## Two hands mode (default)
+
+Two hands is selected when the app opens and after Finish. Just choose **Start playing** and show both hands. The silent welcome demo now shows both roles: Right moves horizontally for notes, Left moves vertically for volume. For the original controls, choose **Settings → Hand controls → One hand**.
+
+- **Physical RIGHT hand — Notes (mint trail):** move left/right to select notes. Its height only moves the visual marker; it never changes volume.
+- **Physical LEFT hand — Volume (lavender trail):** move up for louder, down for quieter. Its horizontal movement never selects notes.
+
+Both hands are required. A single hand cannot play or take over the other role, including on first entry. If either hand disappears or becomes uncertain, the visitor instrument fades out over about 160 ms. Messages name the missing hand and the volume meter falls to zero. Returning both hands resumes smoothly, with a short attack and stable note entry. There is no hand-role swap setting, pinch echo or hand-controlled brightness in Two hands mode. Existing instruments and master volume/mute controls work normally.
+
+The per-hand filters smooth position with a 75 ms time constant. The role tracker uses current MediaPipe Tasks physical handedness labels, at least 0.75 confidence, 180 ms initial settling, recent palm positions and a 1200 ms anchor-retention window. It never assigns by detection-array order. Close crossings, duplicate labels and implausible jumps temporarily withhold controls rather than guess. Roles stay Right/Left on recovery. These thresholds are code defaults in `src/hands.js`.
+
+The camera input is unmirrored; only its preview and horizontal note controls are mirrored. The current Tasks label convention was checked against the [upstream label change](https://github.com/google-ai-edge/mediapipe/commit/ed0c8d8d8bbd466eac1e483ab62a42dd7d486e96). Legacy Hands documentation uses a different convention. Do not swap physical Right/Left just because the preview is mirrored. Unusual camera drivers that already mirror their captured frames require an on-site check.
+
+Free Play uses the fixed roles continuously. Melody Challenge keeps its existing sequence and hold-based scoring: only Right chooses an answer, and both hands must be present to submit it. The example melody still plays independently of visitor input, with neutral brightness/echo. Changing hand mode stops the visitor sound and resets the current challenge. Finish returns to the Two hands default. Mouse/touch fallback keeps its original controls; it does not require two touch points. The optional mouse effects-test panel remains available only in One hand mode and does not affect Two hands mode.
+
+The app still uses one window and one camera/audio instance. Both labelled hands and the volume readout use the same interface in Laptop and UHD/Hologram modes. No recording, multiplayer or musical looping feature is added.
+
+### Checks and live testing
+
+`npm.cmd test` checks fixed physical roles, reordered detections, crossing/loss/recovery, no single-hand promotion, and independent note/volume axes using simulated landmarks. Audio checks cover bounded effects, mute, reset and cleanup. Run the build with `npm.cmd run build`.
+
+With the temporary Playwright setup above, run:
+
+```powershell
+node scripts/check-two-hands.cjs
+node scripts/check-welcome.cjs
+node scripts/check-showcase.cjs
+node scripts/check-presentation.cjs
+```
+
+The two-hand browser check injects synthetic detections into a simulated camera stream. It checks silence with either missing hand, fixed Right/Left labels, axis independence, fade/recovery, absence of pinch/brightness effects, challenge playback, French, UHD, mouse fallback and camera/audio cleanup. These are not live webcam reliability or listening tests.
+
+Before the showcase:
+
+1. Confirm physical Right and Left labels separately using the actual webcam and mirrored preview. No visitor sound should play with only one hand visible.
+2. With both present, move Right horizontally: notes should change. Move Right vertically: volume must stay fixed. Move Left horizontally: notes and volume must stay fixed. Move Left vertically: only volume should change.
+3. Hide each hand in turn and then both: listen for a clean fade and verify the missing-hand message. Restore both and confirm smooth recovery with the same roles.
+4. Reverse entry order, cross slowly/quickly, overlap briefly and separate. A brief pause during uncertainty is expected; roles must recover without switching.
+5. Pinch either hand: no echo or brightness change should occur. Try each instrument, mute, volume, Restart, Finish, page hiding and inactivity reset.
+6. Try a full Melody Challenge. Examples should play normally; answers require both hands. Verify One hand and mouse/touch still work as before, then check EN/FR and both UHD presets.
+
+Low light, occlusion, fast crossings and unusual camera drivers can still reduce tracking confidence. Actual handedness, crossing reliability, fade quality, sound balance and performance on the event laptop/Capsule remain live-testing requirements.
+
+The play controls now focus on Instrument, Play, Speaker volume, Help, Mute and Finish. Repeated headings/instructions are removed from the sidebar. A compact readout below the stage identifies each hand and shows Hand volume. When either required hand is missing, the stale current-note display is hidden and a two-hand placement guide names what is needed. Optional One hand, timing and output adjustments stay in Settings/Display.

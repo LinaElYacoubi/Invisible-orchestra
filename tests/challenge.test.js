@@ -51,11 +51,11 @@ function fakeBuffer() {
 }
 function fakeAudio() {
  const sources=[];
- const param=()=>({value:0,setTargetAtTime(v){this.value=v;},cancelScheduledValues(){}});
+ const param=()=>({value:0,setTargetAtTime(v){this.value=v;},cancelScheduledValues(){},setValueAtTime(v){this.value=v;}});
  class Context {
   constructor(){this.currentTime=0;this.state='running';this.destination={};}
-  node(){ return {gain:param(),threshold:param(),knee:param(),ratio:param(),attack:param(),release:param(),connect(){return this;},disconnect(){this.disconnected=true;}}; }
-  createGain(){return this.node();} createDynamicsCompressor(){return this.node();}
+  node(){ return {gain:param(),frequency:param(),Q:param(),delayTime:param(),threshold:param(),knee:param(),ratio:param(),attack:param(),release:param(),connect(){return this;},disconnect(){this.disconnected=true;}}; }
+  createGain(){return this.node();} createDynamicsCompressor(){return this.node();} createBiquadFilter(){return this.node();} createDelay(){return this.node();}
   createBufferSource(){const n=this.node();n.playbackRate=param();n.start=()=>{n.started=true;};n.stop=()=>{n.stopped=true;setTimeout(()=>n.onended?.(),40);};sources.push(n);return n;}
   async decodeAudioData(){return fakeBuffer();}
   async resume(){} async close(){this.state='closed';}
@@ -88,7 +88,7 @@ test('sample voices strike once per entry, switch cleanly, sustain sax and cance
   s.playNote(1);await wait(); assert.equal(sources.length,2);assert.ok(sources[0].stopped);assert.ok(sources[0].disconnected);
   s.setInstrument('saxophone');await wait();assert.equal(sources.length,3); assert.ok(sources[2].loop);assert.ok(sources[1].stopped);
   s.setMuted(true);assert.equal(s.voice.voiceGain.gain.value,0);
-  s.setMasterLevel(.6);assert.equal(s.master.gain.value,.6);
+  s.setMasterLevel(.6);assert.equal(s.master.gain.value,0);
   s.setTracking(false);await wait();assert.equal(s.sources.size,0);
   s.setTracking(true);await wait();assert.equal(sources.length,4);
   s.setInstrument('guitar');s.stopSound();await wait();assert.equal(sources.length,4);

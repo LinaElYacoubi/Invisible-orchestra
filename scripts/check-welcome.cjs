@@ -10,7 +10,8 @@ let server,browser;
  const output=path.join(process.env.TEMP,'invisible-orchestra-qa');fs.mkdirSync(output,{recursive:true});
  for(const [w,h] of [[1366,768],[1920,1080],[3840,2160],[2160,3840],[390,844]]){
   await page.setViewportSize({width:w,height:h});await page.goto('http://127.0.0.1:5173');await page.locator('#pageTitle').waitFor();await page.waitForTimeout(100);
-  assert.equal(await page.locator('h1').count(),1);assert.equal(await page.locator('.privacy-note').count(),1);assert.ok(await page.locator('.privacy-note').isVisible());assert.equal(await page.locator('.welcome-support').innerText(),'No musical experience needed');assert.equal(await page.getByText('Your hands. Your orchestra.',{exact:true}).count(),0);
+  assert.equal(await page.locator('#handMode').inputValue(),'two');assert.ok(await page.locator('.demo-left-hand').isVisible());
+ assert.equal(await page.locator('h1').count(),1);assert.equal(await page.locator('.privacy-note').count(),1);assert.ok(await page.locator('.privacy-note').isVisible());assert.equal(await page.locator('.welcome-support').innerText(),'No musical experience needed');assert.equal(await page.getByText('Your hands. Your orchestra.',{exact:true}).count(),0);
   assert.equal(await page.evaluate(()=>window.__cameraCalls+window.__audioCalls),0);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   for(const selector of ['#startButton','#fallbackButton','.demo-captions']){
@@ -28,7 +29,7 @@ let server,browser;
  }
  await page.setViewportSize({width:1366,height:768});await page.goto('http://127.0.0.1:5173');
  const first=await page.locator('.demo-hand').evaluate(e=>[e.style.left,e.style.top]);await page.waitForTimeout(300);const moved=await page.locator('.demo-hand').evaluate(e=>[e.style.left,e.style.top]);assert.notDeepEqual(first,moved);
- const demoState=await page.locator('.control-demo').evaluate(e=>({note:+e.dataset.note,active:[...e.querySelectorAll('.demo-zones > span')].findIndex(z=>z.classList.contains('is-active')),volume:parseFloat(e.querySelector('.demo-volume-fill').style.height),y:parseFloat(e.querySelector('.demo-hand').style.top)}));assert.equal(demoState.note,demoState.active);assert.ok(Math.abs(demoState.volume-(100-demoState.y))<.01);
+ const demoState=await page.locator('.control-demo').evaluate(e=>({note:+e.dataset.note,active:[...e.querySelectorAll('.demo-zones > span')].findIndex(z=>z.classList.contains('is-active')),volume:parseFloat(e.querySelector('.demo-volume-fill').style.height),y:parseFloat(e.querySelector('.demo-left-hand').style.top)}));assert.equal(demoState.note,demoState.active);assert.ok(Math.abs(demoState.volume-(100-demoState.y))<.01);
  await page.locator('.play-settings > summary').click();await page.locator('#octaveToggle').check();assert.equal(await page.locator('.demo-zones b').first().innerText(),'C4');await page.locator('#octaveToggle').uncheck();
  await page.locator('#holdDuration').waitFor({state:'visible'});
  const settings=await page.locator('.settings-content').boundingBox();assert.ok(settings.x>=0 && settings.x+settings.width<=1366 && settings.y+settings.height<=768);

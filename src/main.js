@@ -4,7 +4,8 @@ import { SoftSynth } from "./audio.js";
 import { stopMediaTracks } from "./resources.js";
 import "./style.css";
 
-import { noteLabel, demoFrame } from "./display-labels.js";
+import { HandRoles, mapTwoHandsToControl } from "./hands.js";
+import { noteLabel, welcomeDemoFrame } from "./display-labels.js";
 import { OUTPUT_PRESETS, outputConfig } from "./presentation.js";
 import { ShowcaseSession } from "./showcase.js";
 import { MelodyChallenge, generateMelody } from "./challenge.js";
@@ -96,6 +97,8 @@ const session = new ShowcaseSession();
 let lifecycle = 0;
 let stopping = false;
 const synth = new SoftSynth();
+let handMode='two', roles=new HandRoles(), lastRoles=null, volumePoint=null, volumeTrail=[], answerBlockedUntil=0, handsUpdating=false;
+
 const challenge = new MelodyChallenge();
 let playMode = 'free';
 let challengeMessage = 'readyChallenge';
@@ -225,7 +228,7 @@ demo.innerHTML = `<p class="demo-label" data-i18n="demoLabel"></p>
 <div class="demo-visual" aria-hidden="true"><div class="demo-path">
  <div class="demo-zones">${NOTES.map((note,i)=>`<span style="--demo-hue:${195+i*12.5}"><b>${note.name}</b></span>`).join('')}</div>
  <svg class="demo-trail" viewBox="0 0 500 220" preserveAspectRatio="none"><defs><linearGradient id="demoTrailGradient" gradientUnits="userSpaceOnUse" x1="65" y1="125" x2="405" y2="125"><stop stop-color="#9bf1dd" stop-opacity="0"/><stop offset="1" stop-color="#9bf1dd" stop-opacity=".85"/></linearGradient></defs><path d="M65 125 H405" stroke="url(#demoTrailGradient)" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
- <span class="demo-hand">${handOutline}</span>
+ <span class="demo-hand">${handOutline}<small class="demo-role-label"></small></span><span class="demo-left-hand">${handOutline}<small class="demo-role-label"></small></span>
 </div><div class="demo-volume"><span data-i18n="demoLoud"></span><div class="demo-volume-track"><div class="demo-volume-fill"></div><i class="demo-volume-marker"></i></div><span data-i18n="demoQuiet"></span></div></div>
 <div class="demo-captions"><span data-i18n="demoNotes"></span><span data-i18n="demoVolume"></span></div>`;
 elements.welcome.append(demo);
@@ -245,7 +248,12 @@ const demoMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
 let demoTrail=[];
 function updateDemo(now){
  if(elements.welcome.classList.contains('is-hidden'))return;
- const frame=demoFrame(now,demoMotion.matches);
+ const frame=welcomeDemoFrame(now,handMode==='two',demoMotion.matches);
+ const leftHand=demo.querySelector('.demo-left-hand');leftHand.hidden=!frame.left;
+ if(frame.left){leftHand.style.left=frame.left.x*100+'%';leftHand.style.top=frame.left.y*100+'%';}
+ demo.querySelector('.demo-hand small').textContent=handMode==='two'?translations().rightHand:'';
+ leftHand.querySelector('small').textContent=translations().leftHand;
+ for(const [key,text] of [['demoNotes',handMode==='two'?translations().twoNotes:translations().demoNotes],['demoVolume',handMode==='two'?translations().twoVolume:translations().demoVolume]])demo.querySelector('[data-i18n="'+key+'"]').textContent=text;
  const hand=demo.querySelector('.demo-hand');hand.style.left=frame.x*100+'%';hand.style.top=frame.y*100+'%';
  demo.querySelectorAll('.demo-zones > span').forEach((zone,i)=>zone.classList.toggle('is-active',i===frame.noteIndex));
  demo.querySelector('.demo-volume-fill').style.height=frame.volume*100+'%';
@@ -257,6 +265,77 @@ function updateDemo(now){
  path.setAttribute('d',demoTrail.map((point,i)=>(i?'L':'M')+(point.x*500).toFixed(1)+' '+(point.y*220).toFixed(1)).join(' '));
 }
 
+
+Object.assign(strings.en,{handControl:'Hand controls',oneHand:'One hand',twoHands:'Two hands',melodyHand:'Melody hand',rightHand:'Right',leftHand:'Left',melodyRole:'Melody',effectsRole:'Effects',melodyGuide:'Move left / right for notes; up / down for volume.',effectsGuide:'Raise your other hand to brighten the tone. Pinch thumb and index for echo.',melodyDetected:'Melody hand detected',showMelody:'Show your melody hand',effectsDetected:'Effects hand detected',showEffects:'Show your effects hand',brightness:'Brightness',echoOn:'Echo On',echoOff:'Echo Off',testEffects:'Test effects with mouse / touch',enableEffectsTest:'Enable effects test',effectsTestHint:'For mouse / touch mode. Challenge demonstrations always use neutral effects.',ambiguousHands:'Separate your hands briefly to restore tracking.'});
+Object.assign(strings.fr,{handControl:'Commandes des mains',oneHand:'Une main',twoHands:'Deux mains',melodyHand:'Main mélodique',rightHand:'Droite',leftHand:'Gauche',melodyRole:'Mélodie',effectsRole:'Effets',melodyGuide:'Gauche / droite : notes ; haut / bas : volume.',effectsGuide:'Levez l’autre main pour éclaircir le son. Pincez le pouce et l’index pour l’écho.',melodyDetected:'Main mélodique détectée',showMelody:'Montrez votre main mélodique',effectsDetected:'Main d’effets détectée',showEffects:'Montrez votre main d’effets',brightness:'Brillance',echoOn:'Écho activé',echoOff:'Écho désactivé',testEffects:'Tester les effets avec souris / tactile',enableEffectsTest:'Activer le test des effets',effectsTestHint:'Pour le mode souris / tactile. Les démonstrations du défi utilisent des effets neutres.',ambiguousHands:'Écartez brièvement les mains pour rétablir le suivi.'});
+settingsContent.insertAdjacentHTML('afterbegin','<label><span data-i18n="handControl"></span><select id="handMode"><option value="two" data-i18n="twoHands"></option><option value="one" data-i18n="oneHand"></option></select></label>');
+Object.assign(strings.en,{twoHelpStart:'<strong>Start.</strong> Choose Start playing and allow the camera. Show both hands, or choose Try with mouse.',twoHelpMove:'<strong>Notes.</strong> Move your right hand left or right across the coloured zones.',twoHelpVolume:'<strong>Volume.</strong> Raise your left hand for louder notes; lower it for quieter notes. Keep both hands visible.',bothHandsNeeded:'Keep both hands in view to play.',twoNotes:'Right hand: left / right → notes',twoVolume:'Left hand: up / down → volume',handVolume:'Hand volume',melodyRole:'Right hand · Notes',effectsRole:'Left hand · Volume',melodyGuide:'Move your right hand left / right to choose notes. Height does not change volume.',effectsGuide:'Move your left hand up for louder, down for quieter. Keep both hands visible.',melodyDetected:'Right hand detected · Notes',showMelody:'Show your right hand for notes',effectsDetected:'Left hand detected · Volume',showEffects:'Show your left hand for volume',showBoth:'Show both hands: right for notes, left for volume.',bothReady:'Right hand: notes ? Left hand: volume'});
+Object.assign(strings.fr,{twoHelpStart:'<strong>Commencer.</strong> Autorisez la caméra et montrez les deux mains, ou choisissez Essayer avec la souris.',twoHelpMove:'<strong>Notes.</strong> Déplacez la main droite de gauche à droite dans les zones colorées.',twoHelpVolume:'<strong>Volume.</strong> Levez la main gauche pour jouer plus fort ; baissez-la pour adoucir. Gardez les deux mains visibles.',bothHandsNeeded:'Gardez les deux mains visibles pour jouer.',twoNotes:'Main droite : gauche / droite → notes',twoVolume:'Main gauche : haut / bas → volume',handVolume:'Volume de la main',melodyRole:'Main droite · Notes',effectsRole:'Main gauche · Volume',melodyGuide:'Déplacez la main droite de gauche à droite pour choisir les notes. Sa hauteur ne règle pas le volume.',effectsGuide:'Levez la main gauche pour jouer plus fort ; baissez-la pour adoucir. Gardez les deux mains visibles.',melodyDetected:'Main droite détectée · Notes',showMelody:'Montrez la main droite pour les notes',effectsDetected:'Main gauche détectée · Volume',showEffects:'Montrez la main gauche pour le volume',showBoth:'Montrez les deux mains : droite pour les notes, gauche pour le volume.',bothReady:'Main droite : notes ? Main gauche : volume'});
+const handGuide=document.createElement('div');handGuide.className='hand-role-guide';handGuide.hidden=true;
+handGuide.innerHTML='<p data-i18n="bothHandsNeeded"></p>';
+elements.welcome.querySelector('.welcome-actions').before(handGuide);
+const handPanel=document.createElement('section');handPanel.className='two-hand-panel';handPanel.hidden=true;
+handPanel.innerHTML='<p class="melody-role" id="melodyRoleStatus"></p><p class="effects-role" id="effectsRoleStatus"></p><p id="handsHint"></p><label id="twoHandVolumeReadout"><span data-i18n="handVolume"></span><progress id="twoHandVolume" max="0.8" value="0"></progress></label><div id="manualEffectReadout"><label><span data-i18n="brightness"></span><progress id="brightnessMeter" max="1" value="1"></progress></label><span id="echoStatus"></span></div><p data-i18n="effectsGuide"></p>';
+elements.stage.after(handPanel);
+const effectsTest=document.createElement('details');effectsTest.className='effects-test';
+effectsTest.innerHTML='<summary data-i18n="testEffects"></summary><label><input id="testEffectsEnabled" type="checkbox"><span data-i18n="enableEffectsTest"></span></label><p data-i18n="effectsTestHint"></p><label><span data-i18n="brightness"></span><input id="testBrightness" type="range" min="0" max="100" value="70"></label><label><input id="testEcho" type="checkbox"><span data-i18n="echoOn"></span></label>';
+settingsContent.append(effectsTest);
+function resetHandState(){
+ roles=new HandRoles();lastRoles=null;volumePoint=null;volumeTrail=[];
+ answerBlockedUntil=performance.now()+350;challenge.leave();synth.setEffects();
+}
+async function changeHandControls(){
+ handMode=$('#handMode').value;
+ setTracking(false);synth.stopSound();resetChallenge();resetHandState();
+ if(state.landmarker){handsUpdating=true;try{await state.landmarker.setOptions({numHands:handMode==='two'?2:1});}catch(error){console.error('Hand configuration failed',error);await stopExperience();}finally{handsUpdating=false;}}
+ renderHandUI();
+}
+$('#handMode').addEventListener('change',()=>void changeHandControls());
+
+function applyHandEffects(){
+ let effects={brightness:null,echo:false};
+ if(challenge.phase!=='playback'){
+  if(handMode==='one' && $('#testEffectsEnabled').checked && state.mode==='mouse')effects={brightness:Number($('#testBrightness').value)/100,echo:$('#testEcho').checked};
+
+ }
+ synth.setEffects(effects);
+ renderHandUI(effects);
+}
+function renderHandUI(effects=synth.effects){
+ handGuide.hidden=handMode!=='two';
+ for(const [key,twoKey] of [['helpStart','twoHelpStart'],['helpMove','twoHelpMove'],['helpVolume','twoHelpVolume']]){
+  const node=instructions.querySelector('[data-i18n="'+key+'"]'),text=translations()[handMode==='two'?twoKey:key];if(node.innerHTML!==text)node.innerHTML=text;
+ }
+
+ elements.welcome.querySelector('.welcome-copy').textContent=translations()[handMode==='two'?'twoWelcome':'welcomeCopy'];
+ handPanel.hidden=!state.running || !((handMode==='two' && state.mode==='camera') || (handMode==='one' && $('#testEffectsEnabled').checked));
+ $('#melodyRoleStatus').hidden=state.mode==='mouse';$('#effectsRoleStatus').hidden=state.mode==='mouse';
+ const side=lastRoles?.melody?.side;
+ const melodyText=translations()[lastRoles?.melody?'melodyDetected':'showMelody']+(side?' ('+translations()[side==='Right'?'rightHand':'leftHand']+')':'');
+ const effectSide=lastRoles?.volume?.side;
+ const effectText=translations()[lastRoles?.volume?'effectsDetected':'showEffects']+(effectSide?' ('+translations()[effectSide==='Right'?'rightHand':'leftHand']+')':'');
+ for(const [id,text] of [['melodyRoleStatus',melodyText],['effectsRoleStatus',effectText],['echoStatus',translations()[effects.echo?'echoOn':'echoOff']],['handsHint',lastRoles?.ambiguous?translations().ambiguousHands:'']])if($('#'+id).textContent!==text)$('#'+id).textContent=text;
+ $('#brightnessMeter').value=effects.brightness??1;
+ $('#twoHandVolume').value=lastRoles?.ready?mapTwoHandsToControl(lastRoles).volume:0;
+ $('#manualEffectReadout').hidden=handMode==='two';
+ $('#twoHandVolumeReadout').hidden=handMode!=='two';effectsTest.hidden=handMode==='two';
+ const hint=handPanel.querySelector('p[data-i18n]');hint.dataset.i18n=handMode==='two'?'effectsGuide':'effectsTestHint';hint.textContent=translations()[hint.dataset.i18n];
+ const message=translations()[lastRoles?.ambiguous?'ambiguousHands':!lastRoles?.melody && !lastRoles?.volume?'showBoth':!lastRoles?.melody?'showMelody':!lastRoles?.volume?'showEffects':'bothReady'];
+ placement.querySelector('strong').textContent=handMode==='two'?message:translations().placement;
+ placement.querySelector('p').textContent=handMode==='two'?translations().bothHandsNeeded:translations().placementHint;
+ const outline=placement.querySelector('.hand-outline');
+ if(outline.dataset.mode!==handMode){outline.dataset.mode=handMode;outline.innerHTML=handMode==='two'?handOutline+handOutline:handOutline;outline.classList.toggle('two-outline',handMode==='two');}
+ const twoCamera=handMode==='two' && state.mode==='camera';
+ elements.noteFloat.classList.toggle('awaiting-hands',twoCamera && !state.tracking && challenge.phase!=='playback');
+ elements.feedback.classList.toggle('two-hand-feedback',twoCamera);
+
+ if(handMode==='two' && state.running && state.mode==='camera' && challenge.phase!=='playback'){
+  elements.feedbackText.textContent=message;nextStep.textContent=message;
+ }
+
+}
+Object.assign(strings.en,{playMode:'Play',freePlay:'Free play',masterVolume:'Speaker volume',twoWelcome:'Use your right hand for notes and your left for volume.'});
+Object.assign(strings.fr,{playMode:'Jouer',freePlay:'Jeu libre',masterVolume:'Volume des haut-parleurs',twoWelcome:'La main droite choisit les notes. La main gauche règle le volume.'});
 const placement = document.createElement('div'); placement.className = 'hand-placement'; placement.hidden = true;
 placement.innerHTML = `<span class="hand-outline" aria-hidden="true">${handOutline}</span><strong data-i18n="placement"></strong><p data-i18n="placementHint"></p>`;
 elements.stage.append(placement);
@@ -336,6 +415,7 @@ function renderChallenge() {
  $('#nextMelody').hidden = challenge.phase !== 'success';
 }
 function resetChallenge() {
+ resetHandState();
  challenge.reset(); challengeMessage = 'readyChallenge'; synth.stopSound(); renderChallenge();
 }
 function beginMelody(sequence) {
@@ -377,6 +457,7 @@ const translations = () => strings[state.language];
 
 function translatePage() {
   updateNoteLabels();
+  renderHandUI();
   document.documentElement.lang = state.language;
   document.querySelectorAll("[data-i18n]").forEach((element) => {
     const key = element.dataset.i18n;
@@ -386,6 +467,7 @@ function translatePage() {
   elements.languageToggle.setAttribute("aria-label", state.language === "en" ? "Passer en français" : "Switch to English");
   elements.previewToggle.querySelector("[data-i18n]").textContent = translations()[state.previewVisible ? "hidePreview" : "showPreview"];
   elements.mute.querySelector("[data-i18n]").textContent = translations()[state.muted ? "unmute" : "mute"];
+  renderHandUI();
   renderChallenge();
   setHandStatus(state.tracking);
   if (state.noteIndex != null && state.mode !== "idle") updateNote(state.noteIndex);
@@ -442,7 +524,7 @@ function setTracking(detected, control = null, landmarks = null) {
     elements.stateLabel.textContent = translations().statePlaying;
     updateNote(control.noteIndex);
     if (playMode === "free" || challenge.phase === "answer") {
-      synth.setPerformanceVolume(control.volume); synth.setTracking(true);
+      synth.setPerformanceVolume(control.volume); synth.setTracking(true,handMode==='two' && state.mode==='camera');
     }
     setHandStatus(true);
     if (landmarks) {
@@ -457,7 +539,7 @@ function setTracking(detected, control = null, landmarks = null) {
     state.handPoint = null;
     elements.stateLabel.dataset.i18n = "stateReady";
     elements.stateLabel.textContent = translations().stateReady;
-    if (challenge.phase !== "playback") synth.setTracking(false);
+    if (challenge.phase !== "playback") synth.setTracking(false,handMode==='two' && state.mode==='camera');
     challenge.input(null, performance.now());
     setHandStatus(false);
   }
@@ -483,12 +565,14 @@ async function createLandmarker(token) {
   const landmarker = await HandLandmarker.createFromOptions(vision, {
     baseOptions: { modelAssetPath: modelUrl },
     runningMode: "VIDEO",
-    numHands: 1,
+    numHands: handMode==='two'?2:1,
     minHandDetectionConfidence: 0.55,
     minHandPresenceConfidence: 0.5,
     minTrackingConfidence: 0.5
   });
   if (token !== lifecycle) { landmarker.close(); return null; }
+  await landmarker.setOptions({numHands:handMode==='two'?2:1});
+  if(token!==lifecycle){landmarker.close();return null;}
   state.landmarker = landmarker;
   return state.landmarker;
 }
@@ -645,6 +729,7 @@ async function stopExperience({ paused = false } = {}) {
   state.muted = false;
   synth.setMuted(false);
   translatePage();
+  handMode='two';$('#handMode').value='two';$('#testEffectsEnabled').checked=false;$('#testEcho').checked=false;resetHandState();
   state.errorKey=''; state.errorText=''; state.noteIndex=0; state.lastSeenAt=0;
   playMode = 'free'; $('#playMode').value = 'free';
   synth.setInstrument('piano'); $('#instrumentChoice').value = 'piano';
@@ -716,6 +801,7 @@ function drawHandSkeleton(landmarks, width, height) {
 }
 
 function drawVisuals(now, backgroundFrame = false) {
+  applyHandEffects();
   updateDemo(now);
   updateShowcase(now);
   const bounds = elements.stage.getBoundingClientRect();
@@ -736,16 +822,16 @@ function drawVisuals(now, backgroundFrame = false) {
     } else {
       if (challenge.phase === 'answer') {
         if (state.tracking) { synth.playNote(state.noteIndex); synth.setPerformanceVolume(state.handPoint.volume); }
-        synth.setTracking(state.tracking);
+        synth.setTracking(state.tracking,handMode==='two' && state.mode==='camera');
       }
-      const result = challenge.input(state.tracking ? state.noteIndex : null, now);
+      const result = now>=answerBlockedUntil?challenge.input(state.tracking ? state.noteIndex : null, now):null;
       if (result) { challengeMessage = result; renderChallenge(); if (result === 'success') synth.stopSound(); }
     }
   }
   const active = challenge.phase === 'playback' ? challenge.highlight : state.tracking ? state.noteIndex : null;
   [...zones.children].forEach((zone, i) => zone.classList.toggle('active', i === active));
   if (challenge.phase === 'playback' && active != null) { elements.noteName.textContent=noteLabel(active,state.language,showOctaves); elements.panelNote.textContent=noteLabel(active,state.language,showOctaves); }
-  const hue = 195 + (state.noteIndex / 10) * 125;
+  const hue = handMode==='two' && state.mode==='camera'?160:195+(state.noteIndex/10)*125;
 
   if (state.mode === "idle" || state.mode === "loading" || state.mode === "error") {
     const pulse = 0.5 + Math.sin(now * 0.00045) * 0.14;
@@ -798,19 +884,42 @@ function drawVisuals(now, backgroundFrame = false) {
     if (state.mode === "camera" && latest.landmarks && state.previewVisible) drawHandSkeleton(latest.landmarks, width, height);
   }
 
-  if (state.running && state.mode === "camera" && elements.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+  if(handMode==='two' && state.running && state.mode==='camera'){
+    volumeTrail=volumeTrail.filter(point=>now-point.time<900);
+    context.save();context.lineWidth=3;context.strokeStyle='#cfb0ff';context.lineCap='round';
+    for(let i=1;i<volumeTrail.length;i++){
+      const a=videoCoordinates({x:1-volumeTrail[i-1].x,y:volumeTrail[i-1].y},width,height);
+      const b=videoCoordinates({x:1-volumeTrail[i].x,y:volumeTrail[i].y},width,height);
+      context.globalAlpha=Math.max(0,1-(now-volumeTrail[i].time)/900);context.beginPath();context.moveTo(a.x,a.y);context.lineTo(b.x,b.y);context.stroke();
+    }
+    context.globalAlpha=1;context.font='600 16px sans-serif';
+    for(const [point,key,color] of [[lastRoles?.melody?{x:1-lastRoles.melody.point.x,y:lastRoles.melody.point.y}:null,'melodyRole','#a2f6dd'],[volumePoint,'effectsRole','#dfc5ff']])if(point){
+      const pos=videoCoordinates({x:1-point.x,y:point.y},width,height);
+      const label=translations()[key];const textWidth=context.measureText(label).width;
+      const x=Math.max(10,Math.min(width-textWidth-12,pos.x+18)),y=Math.max(30,Math.min(height-15,pos.y-20));
+      context.fillStyle='#08121fe6';context.fillRect(x-6,y-20,textWidth+12,28);context.fillStyle=color;context.fillText(label,x,y);
+    }
+    context.restore();
+  }
+  if (state.running && !handsUpdating && state.mode === "camera" && elements.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
     const last = performance.now();
     if (elements.video.currentTime !== state.lastVideoTime && last - state.lastInferenceAt >= 80) {
       state.lastVideoTime = elements.video.currentTime;
       state.lastInferenceAt = last;
       try {
         const results = state.landmarker.detectForVideo(elements.video, Math.round(last));
-        const landmarks = results.landmarks?.[0];
-        if (landmarks?.length) {
-          const control = mapHandToControl(palmCenter(landmarks), state.noteIndex);
-          setTracking(true, control, landmarks);
-        } else if (trackingTimedOut(state.lastSeenAt, last, 180)) {
-          setTracking(false);
+        if(handMode==='two'){
+          lastRoles=roles.update(results,last);
+          const control=mapTwoHandsToControl(lastRoles,state.tracking?state.noteIndex:null);
+          if(control)setTracking(true,control,lastRoles.melody.landmarks);
+          else setTracking(false);
+          volumePoint=lastRoles.volume?{x:1-lastRoles.volume.point.x,y:lastRoles.volume.point.y}:null;
+          if(volumePoint){session.activity(last);volumeTrail.push({...volumePoint,time:last});if(volumeTrail.length>24)volumeTrail.shift();}
+          applyHandEffects();
+        }else{
+          const landmarks=results.landmarks?.[0];
+          if(landmarks?.length){const control=mapHandToControl(palmCenter(landmarks),state.noteIndex);setTracking(true,control,landmarks);}
+          else if(trackingTimedOut(state.lastSeenAt,last,180))setTracking(false);
         }
       } catch (error) {
         console.error("Hand tracking frame failed:", error);
@@ -831,6 +940,7 @@ function drawVisuals(now, backgroundFrame = false) {
       }
     }
     if (state.tracking && trackingTimedOut(state.lastSeenAt, last, 250)) setTracking(false);
+    if(handMode==='two' && last-state.lastInferenceAt>250){lastRoles=null;volumePoint=null;synth.setEffects();}
   }
   if (!backgroundFrame) state.animationId = requestAnimationFrame(drawVisuals);
 }

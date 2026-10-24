@@ -1,6 +1,6 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
-import { noteLabel, demoFrame } from '../src/display-labels.js';
+import { noteLabel, demoFrame, welcomeDemoFrame } from '../src/display-labels.js';
 import { NOTES, noteIndexForX } from '../src/music.js';
 test('beginner labels translate without changing scale or octave identity',()=>{
  const original=NOTES.map(note=>({...note}));
@@ -14,4 +14,11 @@ test('silent demo motion drives the matching note zone and vertical volume',()=>
  for(let now=0;now<24000;now+=200){const frame=demoFrame(now);assert.equal(frame.noteIndex,noteIndexForX(frame.x));assert.ok(frame.x>=.15 && frame.x<=.85);assert.ok(frame.y>=.23-.00001 && frame.y<=.77+.00001);assert.equal(frame.volume,1-frame.y);}
  assert.ok(demoFrame(1500).volume<demoFrame(4500).volume);
  assert.deepEqual(demoFrame(0,true),demoFrame(7000,true));
+});
+
+test('two-hand welcome default demonstrates fixed independent roles, with one-hand alternative',()=>{
+ const a=welcomeDemoFrame(0),b=welcomeDemoFrame(1000);
+ assert.equal(a.y,b.y);assert.notEqual(a.x,b.x);assert.equal(a.left.x,b.left.x);assert.notEqual(a.left.y,b.left.y);assert.equal(b.volume,1-b.left.y);
+ assert.equal(welcomeDemoFrame(0,false).left,null);
+ assert.deepEqual(welcomeDemoFrame(0,true,true),welcomeDemoFrame(9000,true,true));
 });

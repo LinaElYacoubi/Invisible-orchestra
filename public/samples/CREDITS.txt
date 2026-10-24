@@ -1,0 +1,23 @@
+﻿INSTRUMENT SAMPLE CREDITS
+
+Piano, acoustic guitar and saxophone samples from tonejs-instruments,
+curated and edited by N. Brosowsky and contributors.
+https://github.com/nbrosowsky/tonejs-instruments
+Pinned revision: 622c2f1c32c8cfce4158ddc3eb26e518ddef37e5
+
+Samples licensed under Creative Commons Attribution 3.0 Unported:
+https://creativecommons.org/licenses/by/3.0/
+
+Original sources identified by the collection:
+- Piano: VSO2 / Versilian Studios (VSCO Community)
+  http://vis.versilstudios.net/vsco-community.html
+- Acoustic guitar: University of Iowa Musical Instrument Samples
+  http://theremin.music.uiowa.edu/
+- Saxophone: Karoryfer Samples
+  https://www.karoryfer.com/karoryfer-samples
+
+Bundled MP3 files are unmodified copies of the selected upstream samples.
+The app adjusts playback pitch and level, and crossfades a sustain loop for
+saxophone in memory. No endorsement by the sample authors is implied.
+See upstream-sample-source-info.txt and upstream-README.md in this folder.
+upstream-LICENSE.md covers the upstream loader code; we do not use that loader.

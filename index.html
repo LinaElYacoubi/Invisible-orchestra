@@ -5,29 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#080a12" />
     <meta name="description" content="Make music with a wave of your hand. A local-first webcam music experiment for Experiment@CRX at uOttawa INNOVA." />
-    <title>The Invisible Orchestra — Experiment@CRX</title>
+    <title>The Invisible Orchestra </title>
   </head>
-  <body>
+  <body class="welcome-visible session-idle">
     <div class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#" aria-label="The Invisible Orchestra home">
-          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span class="brand-name">INNOVA <span class="brand-divider">/</span> EXPERIMENT@CRX</span>
-        </a>
+        <div class="orchestra-logo" role="img" aria-label="The Invisible Orchestra">
+          <svg viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
+            <path d="M10 46c5 7 13 11 22 11s17-4 22-11M17 38c4 5 9 8 15 8s11-3 15-8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="32" cy="17" r="5" fill="currentColor"/>
+            <path d="M32 26v12m0-10-12 5m12-5 11-10m0 0 9-10M27 40l5-5 5 5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="40" r="2" fill="currentColor"/>
+            <circle cx="23" cy="47" r="2" fill="currentColor"/>
+            <circle cx="41" cy="47" r="2" fill="currentColor"/>
+            <circle cx="52" cy="40" r="2" fill="currentColor"/>
+          </svg>
+          <span>THE INVISIBLE<br /><strong>ORCHESTRA</strong></span>
+        </div>
         <div class="topbar-actions">
-          <span class="privacy-chip"><span class="privacy-dot"></span><span data-i18n="privacyShort">On-device · private</span></span>
           <button class="language-toggle" id="languageToggle" type="button" aria-label="Switch language">FR</button>
         </div>
       </header>
 
       <main>
-        <section class="intro-row" aria-labelledby="pageTitle">
-          <div>
-            <p class="eyebrow"><span class="eyebrow-line"></span><span data-i18n="eyebrow">A gesture-powered sound experiment</span></p>
-            <h1 id="pageTitle" data-i18n="title">The Invisible<br class="mobile-break" /> Orchestra<span class="title-period">.</span></h1>
-          </div>
-          <p class="intro-copy" data-i18n="intro">An instrument you can’t see.<br />Move your hand. Hear what happens.</p>
-        </section>
+
 
         <section class="experience-grid" aria-label="Musical instrument">
           <div class="stage-column">
@@ -39,17 +40,15 @@
                 <span class="state-pill" id="statePill"><span class="state-dot"></span><span id="stateLabel" data-i18n="stateWelcome">READY WHEN YOU ARE</span></span>
               </div>
               <div class="welcome-panel" id="welcomePanel">
-                <div class="welcome-orbit" aria-hidden="true"><span></span><span></span><span></span><span></span><i></i></div>
-                <p class="welcome-kicker" data-i18n="welcomeKicker">YOUR HAND IS THE INSTRUMENT</p>
-                <h2 data-i18n="welcomeTitle">Make a little<br />room for wonder.</h2>
-                <p class="welcome-copy" data-i18n="welcomeCopy">Lift one hand into view. Move across to change the note, then float up and down to shape its volume.</p>
-                <div class="welcome-actions">
-                  <button class="primary-button" id="startButton" type="button">
-                    <span data-i18n="start">Start experience</span><span class="button-arrow" aria-hidden="true">↗</span>
-                  </button>
-                  <button class="text-button" id="fallbackButton" type="button" data-i18n="tryMouse">Try without camera <span aria-hidden="true">→</span></button>
+                <div class="welcome-content">
+                  <h1 id="pageTitle" data-i18n="title">Make music with your hands.</h1>
+
+                  <p class="welcome-copy" data-i18n="welcomeCopy">Move your hand in front of the camera to play.</p>
+                  <div class="welcome-actions">
+                    <button class="primary-button" id="startButton" type="button"><span data-i18n="start">Start playing</span></button>
+                    <button class="text-button" id="fallbackButton" type="button" data-i18n="tryMouse">Try with mouse</button>
+                  </div>
                 </div>
-                <p class="welcome-footnote"><span aria-hidden="true">✳</span> <span data-i18n="welcomeFootnote">No microphone. No recordings. Just you and sound.</span></p>
               </div>
               <div class="resume-panel is-hidden" id="resumePanel">
                 <span class="resume-icon" aria-hidden="true">Ⅱ</span>
@@ -82,7 +81,6 @@
                 <span class="mode-label" id="modeLabel"></span>
               </div>
             </div>
-            <div class="privacy-note"><span class="privacy-lock" aria-hidden="true">⌑</span><span data-i18n="privacyNote">Your camera stays on this device. Video is never recorded or uploaded.</span></div>
           </div>
 
           <aside class="control-panel" aria-label="Instrument controls">
@@ -137,8 +135,6 @@
       </main>
 
       <footer class="page-footer">
-        <span data-i18n="footerCredit">AN EXPERIMENT IN HUMAN-COMPUTER CONNECTION</span>
-        <span>uOttawa <span class="footer-separator">·</span> INNOVA</span>
       </footer>
     </div>
     <script type="module" src="/src/main.js"></script>

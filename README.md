@@ -6,10 +6,6 @@ Airchestra tracks your hands through the webcam and turns your movements into mu
 
 Built with **JavaScript, MediaPipe, the Web Audio API, HTML Canvas and Vite**. Everything runs in the browser.
 
-**Live demo:** [add your Netlify link here]
-
----
-
 ## Features
 
 - **Hand tracking:** MediaPipe follows your hands live through the webcam.

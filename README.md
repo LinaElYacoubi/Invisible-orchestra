@@ -38,8 +38,8 @@ Open the link shown in the terminal and allow camera access.
 
 1. Allow the camera when the browser asks.
 2. Raise your hands in front of the webcam.
-3. **[Describe the movement for notes, e.g. "Move your right hand left and right to change the note."]**
-4. **[Describe the movement for volume, e.g. "Raise your left hand to play louder."]**
+3. Move your right hand left and right to change the note.
+4. Raise your left hand to play louder.
 
 ---
 
